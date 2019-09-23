@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "721769982497",
+    "firebase_url": "https://kasikari-memo3.firebaseio.com",
+    "project_id": "kasikari-memo3",
+    "storage_bucket": "kasikari-memo3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:721769982497:android:80bcaf639fbbf0db809160",
+        "android_client_info": {
+          "package_name": "com.liyuulist.kasikari_memo3"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "721769982497-709d394c291cpevnpid2qfniag4tpmat.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKJDoHHlRCVVV-oJMnFBeXermAl9VlzAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "721769982497-709d394c291cpevnpid2qfniag4tpmat.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
