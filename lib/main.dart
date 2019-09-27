@@ -49,6 +49,12 @@ class _MyListPageState extends State<MyListPage> {
           },
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add),
+        onPressed: (){
+          print("新規作成ボタンを押しました");
+        },
+      ),
     );
   }
 
@@ -63,6 +69,18 @@ class _MyListPageState extends State<MyListPage> {
                 + documentSnapshot['stuff']),
             subtitle: Text('期限： ' + documentSnapshot['date'].toDate().toString().substring(0,10)
                 + "\n相手： " + documentSnapshot['user']),
+          ),
+          ButtonTheme.bar(
+            child: ButtonBar(
+              children: <Widget>[
+                FlatButton(
+                  child: const Text("編集"),
+                  onPressed: (){
+                    print("編集ボタンを押しました");
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
