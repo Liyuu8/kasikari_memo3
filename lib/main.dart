@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 
 void main() => runApp(MyApp());
 
@@ -111,6 +112,21 @@ class _MyInputFormState extends State<InputForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _FormData _data = _FormData();
 
+  void _setLendOrRent(String value) {
+    setState(() {
+      _data.borrowOrLend = value;
+    });
+  }
+
+  Future<DateTime> _selectTime(BuildContext context) {
+    return showDatePicker(
+      context: context,
+      initialDate: _data.date,
+      firstDate: DateTime(_data.date.year - 2),
+      lastDate:  DateTime(_data.date.year + 2),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,6 +159,8 @@ class _MyInputFormState extends State<InputForm> {
                 title: Text("借りた"),
                 onChanged: (String value){
                   print("借りたをタッチしました");
+                  _setLendOrRent(value);
+                  print("貸し借りステータスを${_data.borrowOrLend}へ変更しました");
                 },
               ),
               RadioListTile(
@@ -151,6 +169,8 @@ class _MyInputFormState extends State<InputForm> {
                 title: Text("貸した"),
                 onChanged: (String value){
                   print("貸したをタッチしました");
+                  _setLendOrRent(value);
+                  print("貸し借りステータスを${_data.borrowOrLend}へ変更しました");
                 },
               ),
               TextFormField(
@@ -175,6 +195,14 @@ class _MyInputFormState extends State<InputForm> {
                 child: const Text("締め切り日変更"),
                 onPressed: (){
                   print("締め切り日変更をタッチしました");
+                  _selectTime(context).then((time){
+                    if(time != null && time != _data.date) {
+                      setState(() {
+                        _data.date = time;
+                      });
+                      print("締め切り日を${_data.date.toString().substring(0,10)}に変更しました");
+                    }
+                  });
                 },
               ),
             ],
