@@ -127,6 +127,9 @@ class _MyInputFormState extends State<InputForm> {
     );
   }
 
+  DocumentReference _mainReference = Firestore.instance
+      .collection('kasikari-memo').document();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -137,6 +140,16 @@ class _MyInputFormState extends State<InputForm> {
             icon: Icon(Icons.save),
             onPressed: (){
               print("保存ボタンを押しました");
+              if(_formKey.currentState.validate()) {
+                _formKey.currentState.save();
+                _mainReference.setData({
+                  'borrowOrLend': _data.borrowOrLend,
+                  'user': _data.user,
+                  'stuff': _data.stuff,
+                  'date': _data.date,
+                });
+                Navigator.pop(context);
+              }
             },
           ),
           IconButton(
@@ -179,6 +192,16 @@ class _MyInputFormState extends State<InputForm> {
                   hintText: '相手の名前',
                   labelText: 'Name',
                 ),
+                onSaved: (String value){
+                  _data.user = value;
+                },
+                validator: (value){
+                  if(value.isEmpty){
+                    return '名前を入力してください';
+                  }
+//                  return '';
+                },
+                initialValue: _data.user,
               ),
               TextFormField(
                 decoration: const InputDecoration(
@@ -186,6 +209,16 @@ class _MyInputFormState extends State<InputForm> {
                   hintText: '借りたもの、貸したもの',
                   labelText: 'Loan',
                 ),
+                onSaved: (String value){
+                  _data.stuff = value;
+                },
+                validator: (value){
+                  if(value.isEmpty){
+                    return '対象のものを入力してください';
+                  }
+//                  return '';
+                },
+                initialValue: _data.stuff,
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
