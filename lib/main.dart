@@ -142,8 +142,37 @@ class _MyInputFormState extends State<InputForm> {
   DocumentReference _mainReference = Firestore.instance
       .collection('kasikari-memo').document();
 
+  void _confirmDeletionAlert(){
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text("削除の確認"),
+        content: Text("本当に削除しますか？"),
+        actions: <Widget>[
+          FlatButton(
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop<String>(context, 'Cancel'),
+          ),
+          FlatButton(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop<String>(context, 'OK'),
+          )
+        ],
+      ),
+    ).then<void>((value) => _resultDeletionAlert(value));
+  }
+
+  void _resultDeletionAlert(String value){
+    if(value == 'OK') {
+      _mainReference.delete();
+      Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool deleteFlg = false;
+
     if(widget.documentSnapshot != null) {
       if(_data.user == null && _data.stuff == null) {
         _data.borrowOrLend = widget.documentSnapshot['borrowOrLend'];
@@ -153,6 +182,9 @@ class _MyInputFormState extends State<InputForm> {
       }
       _mainReference = Firestore.instance.collection('kasikari-memo')
           .document(widget.documentSnapshot.documentID);
+
+      // 編集時のとき、アイコンを有効化
+      deleteFlg = true;
     }
     return Scaffold(
       appBar: AppBar(
@@ -176,8 +208,9 @@ class _MyInputFormState extends State<InputForm> {
           ),
           IconButton(
             icon: Icon(Icons.delete),
-            onPressed: (){
+            onPressed: !deleteFlg ? null : (){
               print("削除ボタンを押しました");
+              _confirmDeletionAlert();
             },
           ),
         ],
