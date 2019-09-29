@@ -45,7 +45,8 @@ class _MyListPageState extends State<MyListPage> {
             return ListView.builder(
               itemCount: snapshot.data.documents.length,
               padding: const EdgeInsets.only(top: 10.0),
-              itemBuilder: (context, index) => _buildListItem(context, snapshot.data.documents[index]),
+              itemBuilder: (context, index) =>
+                  _buildListItem(context, snapshot.data.documents[index]),
             );
           },
         ),
@@ -58,7 +59,7 @@ class _MyListPageState extends State<MyListPage> {
             context,
             MaterialPageRoute(
               settings: const RouteSettings(name: "/new"),
-              builder: (BuildContext context) => InputForm(),
+              builder: (BuildContext context) => InputForm(null),
             ),
           );
         },
@@ -85,6 +86,13 @@ class _MyListPageState extends State<MyListPage> {
                   child: const Text("編集"),
                   onPressed: (){
                     print("編集ボタンを押しました");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        settings: const RouteSettings(name: "/edit"),
+                        builder: (BuildContext context) => InputForm(documentSnapshot),
+                      )
+                    );
                   },
                 ),
               ],
@@ -97,10 +105,14 @@ class _MyListPageState extends State<MyListPage> {
 }
 
 class InputForm extends StatefulWidget {
+  final DocumentSnapshot documentSnapshot;
+  InputForm(this.documentSnapshot);
+
   @override
   _MyInputFormState createState() => _MyInputFormState();
 }
 
+// エントリーデータの一時的な格納先
 class _FormData {
   String borrowOrLend = "borrow";
   String user;
@@ -132,6 +144,16 @@ class _MyInputFormState extends State<InputForm> {
 
   @override
   Widget build(BuildContext context) {
+    if(widget.documentSnapshot != null) {
+      if(_data.user == null && _data.stuff == null) {
+        _data.borrowOrLend = widget.documentSnapshot['borrowOrLend'];
+        _data.user = widget.documentSnapshot['user'];
+        _data.stuff = widget.documentSnapshot['stuff'];
+        _data.date = widget.documentSnapshot['date'].toDate();
+      }
+      _mainReference = Firestore.instance.collection('kasikari-memo')
+          .document(widget.documentSnapshot.documentID);
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('貸し借り入力'),
