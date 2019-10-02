@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 void main() => runApp(MyApp());
 
@@ -10,11 +12,42 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '貸し借りめも',
       theme: ThemeData(
-
         primarySwatch: Colors.orange,
       ),
-      home: MyListPage(),
+      routes: <String, WidgetBuilder> {
+        '/': (_) => Splash(),
+        '/list': (_) => MyListPage(),
+      },
     );
+  }
+}
+
+FirebaseUser firebaseUser;
+final FirebaseAuth _auth = FirebaseAuth.instance;
+
+class Splash extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    _getUser(context);
+    return Scaffold(
+      body: Center(
+        child: const Text("スプラッシュ画面"),
+      ),
+    );
+  }
+}
+
+void _getUser(BuildContext context) async {
+  try {
+    firebaseUser = await _auth.currentUser();
+    if(firebaseUser == null) {
+      // 匿名アカウントを発行
+      await _auth.signInAnonymously();
+      firebaseUser = await _auth.currentUser();
+    }
+    Navigator.pushReplacementNamed(context, '/list');
+  } catch(e) {
+    Fluttertoast.showToast(msg: "Firebaseとの接続に失敗しました。");
   }
 }
 
@@ -31,13 +64,23 @@ class _MyListPageState extends State<MyListPage> {
 
     return Scaffold(
       appBar: AppBar(
-
         title: Text("リスト画面"),
+        actions: <Widget>[
+          // action button
+          IconButton(
+            icon: Icon(Icons.exit_to_app),
+            onPressed: () {
+              print("Login.");
+              showBasicDialog(context);
+            },
+          )
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(10.0),
         child: StreamBuilder<QuerySnapshot>(
-          stream: Firestore.instance.collection('kasikari-memo').snapshots(),
+          stream: Firestore.instance.collection('users')
+              .document(firebaseUser.uid).collection('transaction').snapshots(),
           builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
             if(!snapshot.hasData) {
               return const Text('Loading...');
@@ -53,7 +96,7 @@ class _MyListPageState extends State<MyListPage> {
       ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
-        onPressed: (){
+        onPressed: () {
           print("新規作成ボタンを押しました");
           Navigator.push(
             context,
@@ -65,6 +108,127 @@ class _MyListPageState extends State<MyListPage> {
         },
       ),
     );
+  }
+
+  void showBasicDialog(BuildContext context) {
+    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+    String email, password;
+    if(firebaseUser.isAnonymous) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) =>
+            AlertDialog(
+              title: Text("ログイン／登録ダイアログ"),
+              content: Form(
+                key: _formKey,
+                child: Column(
+                  children: <Widget>[
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        icon: const Icon(Icons.email),
+                        labelText: 'Email',
+                      ),
+                      onSaved: (String value) {
+                        email = value;
+                      },
+                      validator: (value) {
+                        if(value.isEmpty) {
+                          return 'Emailを入力してください';
+                        }
+                      },
+                    ),
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        icon: const Icon(Icons.vpn_key),
+                        labelText: 'Password',
+                      ),
+                      onSaved: (String value) {
+                        password = value;
+                      },
+                      validator: (value) {
+                        if(value.isEmpty) {
+                          return 'Passwordを入力してください';
+                        }
+                        if(value.length < 6) {
+                          return 'Passwordは6桁以上で入力してください';
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              // ボタンの配置
+              actions: <Widget>[
+                FlatButton(
+                  child: const Text('キャンセル'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                FlatButton(
+                  child: const Text('登録'),
+                  onPressed: () {
+                    if(_formKey.currentState.validate()) {
+                      _formKey.currentState.save();
+                      _createUser(context, email, password);
+                    }
+                  },
+                ),
+                FlatButton(
+                  child: const Text('ログイン'),
+                  onPressed: () {
+                    if(_formKey.currentState.validate()) {
+                      _formKey.currentState.save();
+                      _signIn(context, email, password);
+                    }
+                  },
+                ),
+              ],
+            ),
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) =>
+            AlertDialog(
+              title: const Text("確認ダイアログ"),
+              content: Text(firebaseUser.email + "でログインしています。"),
+              actions: <Widget>[
+                FlatButton(
+                  child: const Text('キャンセル'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                FlatButton(
+                  child: const Text('ログアウト'),
+                  onPressed: () {
+                    _auth.signOut();
+                    Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+                  },
+                ),
+              ],
+            )
+      );
+    }
+  }
+
+  void _signIn(BuildContext context, String email, String password) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    } catch(e) {
+      Fluttertoast.showToast(msg: "Firebaseのログインに失敗しました。");
+    }
+  }
+
+  void _createUser(BuildContext context, String email, String password) async {
+    try {
+      await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
+    } catch(e) {
+      Fluttertoast.showToast(msg: "Firebaseの登録に失敗しました。");
+    }
   }
 
   Widget _buildListItem(BuildContext context, DocumentSnapshot documentSnapshot) {
@@ -84,7 +248,7 @@ class _MyListPageState extends State<MyListPage> {
               children: <Widget>[
                 FlatButton(
                   child: const Text("編集"),
-                  onPressed: (){
+                  onPressed: () {
                     print("編集ボタンを押しました");
                     Navigator.push(
                       context,
@@ -140,9 +304,10 @@ class _MyInputFormState extends State<InputForm> {
   }
 
   DocumentReference _mainReference = Firestore.instance
-      .collection('kasikari-memo').document();
+      .collection('users').document(firebaseUser.uid)
+      .collection('transaction').document();
 
-  void _confirmDeletionAlert(){
+  void _confirmDeletionAlert() {
     showDialog(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -162,7 +327,7 @@ class _MyInputFormState extends State<InputForm> {
     ).then<void>((value) => _resultDeletionAlert(value));
   }
 
-  void _resultDeletionAlert(String value){
+  void _resultDeletionAlert(String value) {
     if(value == 'OK') {
       _mainReference.delete();
       Navigator.pop(context);
@@ -180,8 +345,9 @@ class _MyInputFormState extends State<InputForm> {
         _data.stuff = widget.documentSnapshot['stuff'];
         _data.date = widget.documentSnapshot['date'].toDate();
       }
-      _mainReference = Firestore.instance.collection('kasikari-memo')
-          .document(widget.documentSnapshot.documentID);
+      _mainReference = Firestore.instance
+          .collection('users').document(firebaseUser.uid)
+          .collection('transaction').document(widget.documentSnapshot.documentID);
 
       // 編集時のとき、アイコンを有効化
       deleteFlg = true;
@@ -192,7 +358,7 @@ class _MyInputFormState extends State<InputForm> {
         actions: <Widget>[
           IconButton(
             icon: Icon(Icons.save),
-            onPressed: (){
+            onPressed: () {
               print("保存ボタンを押しました");
               if(_formKey.currentState.validate()) {
                 _formKey.currentState.save();
@@ -208,7 +374,7 @@ class _MyInputFormState extends State<InputForm> {
           ),
           IconButton(
             icon: Icon(Icons.delete),
-            onPressed: !deleteFlg ? null : (){
+            onPressed: !deleteFlg ? null : () {
               print("削除ボタンを押しました");
               _confirmDeletionAlert();
             },
@@ -225,7 +391,7 @@ class _MyInputFormState extends State<InputForm> {
                 value: "borrow",
                 groupValue: _data.borrowOrLend,
                 title: Text("借りた"),
-                onChanged: (String value){
+                onChanged: (String value) {
                   print("借りたをタッチしました");
                   _setLendOrRent(value);
                   print("貸し借りステータスを${_data.borrowOrLend}へ変更しました");
@@ -235,7 +401,7 @@ class _MyInputFormState extends State<InputForm> {
                 value: "lend",
                 groupValue: _data.borrowOrLend,
                 title: Text("貸した"),
-                onChanged: (String value){
+                onChanged: (String value) {
                   print("貸したをタッチしました");
                   _setLendOrRent(value);
                   print("貸し借りステータスを${_data.borrowOrLend}へ変更しました");
@@ -247,14 +413,13 @@ class _MyInputFormState extends State<InputForm> {
                   hintText: '相手の名前',
                   labelText: 'Name',
                 ),
-                onSaved: (String value){
+                onSaved: (String value) {
                   _data.user = value;
                 },
-                validator: (value){
-                  if(value.isEmpty){
+                validator: (value) {
+                  if(value.isEmpty) {
                     return '名前を入力してください';
                   }
-//                  return '';
                 },
                 initialValue: _data.user,
               ),
@@ -264,14 +429,13 @@ class _MyInputFormState extends State<InputForm> {
                   hintText: '借りたもの、貸したもの',
                   labelText: 'Loan',
                 ),
-                onSaved: (String value){
+                onSaved: (String value) {
                   _data.stuff = value;
                 },
-                validator: (value){
-                  if(value.isEmpty){
+                validator: (value) {
+                  if(value.isEmpty) {
                     return '対象のものを入力してください';
                   }
-//                  return '';
                 },
                 initialValue: _data.stuff,
               ),
@@ -281,9 +445,9 @@ class _MyInputFormState extends State<InputForm> {
               ),
               RaisedButton(
                 child: const Text("締め切り日変更"),
-                onPressed: (){
+                onPressed: () {
                   print("締め切り日変更をタッチしました");
-                  _selectTime(context).then((time){
+                  _selectTime(context).then((time) {
                     if(time != null && time != _data.date) {
                       setState(() {
                         _data.date = time;
