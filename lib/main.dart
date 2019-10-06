@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:share/share.dart';
 
 void main() => runApp(MyApp());
 
@@ -377,6 +378,20 @@ class _MyInputFormState extends State<InputForm> {
             onPressed: !deleteFlg ? null : () {
               print("削除ボタンを押しました");
               _confirmDeletionAlert();
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.share),
+            onPressed: () {
+              print("共有ボタンを押しました");
+              if(_formKey.currentState.validate()) {
+                _formKey.currentState.save();
+                Share.share(
+                  "【" + (_data.borrowOrLend == "lend" ? "貸" : "借") + "】" +
+                    _data.stuff + "\n期限： " + _data.date.toString().substring(0,10) +
+                    "\n相手： " + _data.user + "\n#貸し借りメモ"
+                );
+              }
             },
           ),
         ],
