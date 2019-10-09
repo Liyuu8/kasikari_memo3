@@ -21,7 +21,7 @@ class S implements WidgetsLocalizations {
   @override
   TextDirection get textDirection => TextDirection.ltr;
 
-  String get title => "kasikari-memo";
+  String get title => "kashikari-memo";
 }
 
 class $ja extends S {
